@@ -8,7 +8,7 @@ public class Main {
         JFrame window = new JFrame();
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         window.setResizable(false);
-        window.setTitle("Brick breaker");
+        window.setTitle("Block Breaker");
 
         // Add the GamePanel
         GamePanel gamePanel = new GamePanel();
