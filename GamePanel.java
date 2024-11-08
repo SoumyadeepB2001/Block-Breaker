@@ -30,11 +30,11 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
     double ballXVelocity, ballYVelocity, ballSpeed;
 
-    // ArrayList<Point> bricks = new ArrayList<>();
     ArrayList<Rectangle> bricks = new ArrayList<>();
     int brickWidth, brickHeight, noOfBricksInARow, noOfRows;
 
     boolean gameBegin = false;
+    boolean moveLeft = false, moveRight = false; // Track key states
 
     GamePanel() {
         this.setPreferredSize(new Dimension(panelWidth, panelHeight));
@@ -44,12 +44,9 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         this.addKeyListener(this);
         paddleWidth = 100;
         paddleX = panelWidth / 2 - paddleWidth / 2;
-        paddleSpeed = 20;
-
+        paddleSpeed = 10; 
         // The ball should always start on top of the paddle but it's x position could
         // be anywhere on the paddle
-        // So will randomize the x coordinate to be between the paddleX and (paddleX +
-        // paddleWidth)
         Random random = new Random();
         ball = new Point();
         ball.x = random.nextInt((paddleX + paddleWidth) - paddleX + 1) + paddleX;
@@ -61,6 +58,9 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
         generateBricks();
 
+        // Start the game timer
+        timer = new Timer(10, this);
+        timer.start();
     }
 
     public void paint(Graphics g) {
@@ -82,7 +82,6 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
         for (int i = 0; i < bricks.size(); i++)
             g2D.draw(bricks.get(i));
-
     }
 
     @Override
@@ -92,45 +91,51 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
     @Override
     public void keyPressed(KeyEvent e) {
+        if (gameBegin == false) {
+            // Start the game when the UP arrow key is pressed
+            if (e.getKeyCode() == KeyEvent.VK_UP) {
+                gameBegin = true;
+                ballYVelocity = -ballSpeed; // Start ball moving upward
+            }
+        }
+
+        // Paddle movement
         switch (e.getKeyCode()) {
-            case KeyEvent.VK_UP: {
-                if (gameBegin == false) {
-                    timer = new Timer(10, this);
-                    timer.start();
-                    gameBegin = true;
-                }
-
+            case KeyEvent.VK_LEFT:
+                moveLeft = true;
                 break;
-            }
-
-            case KeyEvent.VK_LEFT: {
-                if ((paddleX - paddleSpeed) < 0 || gameBegin == false)
-                    break;
-
-                paddleX = paddleX - paddleSpeed;
-                repaint();
+            case KeyEvent.VK_RIGHT:
+                moveRight = true;
                 break;
-            }
-
-            case KeyEvent.VK_RIGHT: {
-                if ((paddleX + paddleSpeed) > (panelWidth - paddleWidth) || gameBegin == false)
-                    break;
-
-                paddleX = paddleX + paddleSpeed;
-                repaint();
-                break;
-            }
         }
     }
 
     @Override
     public void keyReleased(KeyEvent e) {
-
+        switch (e.getKeyCode()) {
+            case KeyEvent.VK_LEFT:
+                moveLeft = false;
+                break;
+            case KeyEvent.VK_RIGHT:
+                moveRight = false;
+                break;
+        }
     }
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        moveBall();
+        // Continuously update paddle position based on key states
+        if (gameBegin) {
+            if (moveLeft && paddleX > 0) {
+                paddleX -= paddleSpeed;
+            }
+            if (moveRight && paddleX < panelWidth - paddleWidth) {
+                paddleX += paddleSpeed;
+            }
+
+            moveBall();
+        }
+
         checkCollision();
         repaint();
     }
@@ -140,7 +145,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         Rectangle paddleRect = new Rectangle(paddleX, paddleY, paddleWidth, paddleHeight);
 
         if (ballRect.intersects(paddleRect)) {
-            double angleComponent = ((double) ball.x - ((double) paddleX + ((double) paddleWidth / 2)))/ ((double) paddleWidth / 2);
+            double angleComponent = ((double) ball.x - ((double) paddleX + ((double) paddleWidth / 2))) / ((double) paddleWidth / 2);
 
             double newAngle = Math.toRadians(45) * angleComponent;
             ballXVelocity = ballSpeed * Math.sin(newAngle);
@@ -167,8 +172,6 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
         ball.x = ball.x + (int) ballXVelocity;
         ball.y = ball.y + (int) ballYVelocity;
-
-        repaint();
     }
 
     void generateBricks() {
@@ -195,12 +198,11 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             }
         }
 
-        if(bricks.size() == 0)
-        {
+        if (bricks.size() == 0) {
             playSound("sounds/win.wav");
             JOptionPane.showMessageDialog(null, "You win!");
             System.exit(0);
-        }           
+        }
     }
 
     public void playSound(String soundFileName) {
